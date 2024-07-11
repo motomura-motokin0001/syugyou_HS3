@@ -1,48 +1,74 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class GameController : MonoBehaviour
 {
-    public Slider gauge;
-    public RectTransform judgementLine;
-    public RectTransform perfectZone;
-    public RectTransform greatZone;
-    public Text scoreText;
-    public Text lifeText;
+    public RectTransform gaugeContainer; // ゲージ全体のコンテナ
+    public RectTransform judgementLine; // 判定線
+    public RectTransform perfectZone; // パーフェクトゾーン
+    public RectTransform greatZone; // グレイトゾーン
+    public TextMeshProUGUI scoreText;
+    public TextMeshProUGUI lifeText;
     public int initialLife = 3;
+    [SerializeField] private float judgementSpeed = 100f; // 判定線の速度
+    [SerializeField] private Vector2 initialJudgementPosition = Vector2.zero; // 判定線の初期座標
+    private bool waitStart = true;
 
     private int score = 0;
     private int life;
-    private float perfectZoneRange = 0.05f;
-    private float greatZoneRange = 0.1f;
+    [SerializeField] private float perfectZoneRange = 50f; // ピクセル単位で調整
+    [SerializeField] private float greatZoneRange = 100f; // ピクセル単位で調整
+    private Vector2 judgementDirection = Vector2.right; // 判定線の進行方向
 
     void Start()
     {
-        life = initialLife;
-        UpdateUI();
-        RandomizeJudgementLine();
+        if(waitStart)
+        {
+            life = initialLife;
+            UpdateUI();
+            RandomizeZones();
+            ResetJudgementLine(); // 初期位置に設定
+        
+        }
+        
     }
 
     void Update()
     {
-        // ゲージの更新と判定
-        if (Input.GetKeyDown(KeyCode.Space))
+        if(!GameManager.instance.IsStart()) { return; }
         {
-            CheckJudgement();
-            RandomizeJudgementLine();
-            UpdateUI();
+            MoveJudgementLine();
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                CheckJudgement();
+                ResetJudgementLine();
+                RandomizeZones();
+                UpdateUI();
+            }
+        }
+    }
+
+    void MoveJudgementLine()
+    {
+        judgementLine.anchoredPosition += judgementDirection * judgementSpeed * Time.deltaTime;
+        if (judgementLine.anchoredPosition.x >= gaugeContainer.rect.width / 2 || judgementLine.anchoredPosition.x <= -gaugeContainer.rect.width / 2)
+        {
+            judgementDirection = -judgementDirection;
         }
     }
 
     void CheckJudgement()
     {
-        float distance = Mathf.Abs(judgementLine.anchoredPosition.x - gauge.value);
-        if (distance <= perfectZoneRange)
+        float distanceToPerfect = Mathf.Abs(judgementLine.anchoredPosition.x - perfectZone.anchoredPosition.x);
+        float distanceToGreat = Mathf.Abs(judgementLine.anchoredPosition.x - greatZone.anchoredPosition.x);
+
+        if (distanceToPerfect <= perfectZoneRange / 2)
         {
             score += 100;
         }
-        else if (distance <= greatZoneRange)
+        else if (distanceToGreat <= greatZoneRange / 2)
         {
             score += 50;
         }
@@ -56,10 +82,17 @@ public class GameController : MonoBehaviour
         }
     }
 
-    void RandomizeJudgementLine()
+    void ResetJudgementLine()
     {
-        float randomX = Random.Range(-gauge.GetComponent<RectTransform>().rect.width / 2, gauge.GetComponent<RectTransform>().rect.width / 2);
-        judgementLine.anchoredPosition = new Vector2(randomX, judgementLine.anchoredPosition.y);
+        judgementLine.anchoredPosition = initialJudgementPosition;
+        judgementDirection = Vector2.right;
+    }
+
+    void RandomizeZones()
+    {
+        float randomX = Random.Range(-gaugeContainer.rect.width / 2 + greatZoneRange / 2, gaugeContainer.rect.width / 2 - greatZoneRange / 2);
+        greatZone.anchoredPosition = new Vector2(randomX, greatZone.anchoredPosition.y);
+        perfectZone.anchoredPosition = new Vector2(randomX, perfectZone.anchoredPosition.y);
     }
 
     void UpdateUI()
