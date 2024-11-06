@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
+using System.Collections;
 
 public class DoorButton : MonoBehaviour
 {
@@ -10,6 +11,8 @@ public class DoorButton : MonoBehaviour
     private bool isDoorVisible = false;
     public Vector2 StratPosition;
     public Vector2 EndPosition;
+    public AudioSource DoorClose;
+    public AudioSource DoorOpen;
 
     void Start()
     {
@@ -25,13 +28,25 @@ public class DoorButton : MonoBehaviour
         if (isDoorVisible)
         {
             // 扉を開ける
-            door.DOAnchorPos(StratPosition, 0.5f);
+            DoorClose.Play();
+            door.DOAnchorPos(StratPosition, 1.5f);
         }
         else
         {
             // 扉を閉める
-            door.DOAnchorPos(EndPosition, 0.5f);
+            DoorOpen.Play();
+            door.DOAnchorPos(EndPosition, 1.5f);
         }
         isDoorVisible = !isDoorVisible;
+    }
+    public void Reset()
+    {
+        StartCoroutine(Load());
+    }
+
+        IEnumerator Load()
+    {
+        yield return new WaitForSeconds(1);
+        door.DOAnchorPos(StratPosition, 0.5f);
     }
 }
